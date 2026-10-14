@@ -1,0 +1,7 @@
+{
+  "transaction_id": "0fcc32e4-c7b4-4b26-b85a-8215dbb8e812",
+  "source": "bank_webhook",
+  "source_event_id": "evt_002",
+  "event_type": "payment.settled",
+  "occurred_at": "2026-10-14T16:05:00Z"
+}

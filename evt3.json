@@ -1,0 +1,7 @@
+{
+  "transaction_id": "0fcc32e4-c7b4-4b26-b85a-8215dbb8e812",
+  "source": "ledger",
+  "source_event_id": "evt_003",
+  "event_type": "entry.reversed",
+  "occurred_at": "2026-10-14T16:06:00Z"
+}
