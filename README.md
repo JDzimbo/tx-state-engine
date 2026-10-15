@@ -16,6 +16,11 @@ flags the transaction, and opens a support case automatically.
 
 **Live demo:** [tx-state-engine.onrender.com](https://tx-state-engine.onrender.com)
 
+Click **Run Happy Path** to watch a clean settlement resolve to `settled`,
+or **Trigger Conflict** to watch the engine detect contradictory sources
+and auto-open a case. Click any transaction row to see its full event
+history and the reconciliation decisions behind its current state.
+
 ---
 
 ## The Problem
