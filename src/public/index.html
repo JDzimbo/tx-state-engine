@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transaction State Engine — Live Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0b0f19;
+      color: #e6edf3;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+    header { margin-bottom: 32px; }
+    h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+    .subtitle { color: #8b949e; font-size: 15px; margin-top: 6px; }
+    .status-bar {
+      display: flex; gap: 24px; align-items: center;
+      padding: 16px 20px; background: #111827;
+      border: 1px solid #1f2937; border-radius: 8px;
+      margin-bottom: 24px; font-size: 14px;
+    }
+    .dot {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; margin-right: 8px; vertical-align: middle;
+    }
+    .dot.green { background: #22c55e; box-shadow: 0 0 8px #22c55e80; }
+    .dot.red { background: #ef4444; box-shadow: 0 0 8px #ef444480; }
+    .dot.amber { background: #f59e0b; }
+    .actions { display: flex; gap: 12px; margin-bottom: 24px; }
+    button {
+      padding: 10px 18px; border-radius: 6px; border: 1px solid #30363d;
+      background: #21262d; color: #e6edf3; cursor: pointer;
+      font-size: 14px; font-weight: 500; transition: all 0.15s;
+    }
+    button:hover:not(:disabled) { background: #30363d; border-color: #8b949e; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.primary { background: #238636; border-color: #2ea043; }
+    button.primary:hover:not(:disabled) { background: #2ea043; }
+    button.danger { background: #7d2020; border-color: #a03030; }
+    button.danger:hover:not(:disabled) { background: #a03030; }
+    h2 { font-size: 18px; font-weight: 600; margin: 24px 0 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 10px 12px; color: #8b949e; font-weight: 500;
+         border-bottom: 1px solid #1f2937; font-size: 12px; text-transform: uppercase;
+         letter-spacing: 0.5px; }
+    td { padding: 12px; border-bottom: 1px solid #161b22; }
+    tr.clickable { cursor: pointer; transition: background 0.1s; }
+    tr.clickable:hover { background: #161b22; }
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 500;
+    }
+    .badge.settled { background: #0d3b1a; color: #4ade80; }
+    .badge.pending { background: #3d2e0a; color: #fbbf24; }
+    .badge.failed { background: #3d0f0f; color: #f87171; }
+    .badge.inconsistent { background: #2d1b4e; color: #c084fc; }
+    .badge.initiated { background: #1f2937; color: #94a3b8; }
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+    .detail {
+      margin-top: 24px; padding: 20px; background: #111827;
+      border: 1px solid #1f2937; border-radius: 8px;
+    }
+    .detail h3 { font-size: 15px; margin-bottom: 12px; color: #8b949e; font-weight: 500; }
+    .event-row {
+      padding: 10px 0; border-bottom: 1px solid #1f2937;
+      display: flex; justify-content: space-between; font-size: 13px;
+    }
+    .event-row:last-child { border-bottom: none; }
+    .empty { color: #6b7280; font-style: italic; padding: 24px 0; text-align: center; }
+    .spinner { display: inline-block; width: 14px; height: 14px;
+      border: 2px solid #30363d; border-top-color: #22c55e;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: -2px; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .flash { animation: flash 1s ease-out; }
+    @keyframes flash { 0% { background: #1a3a1a; } 100% { background: transparent; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Transaction State Engine</h1>
+      <p class="subtitle">Multi-tenant reconciliation for fintech — resolving "where is my money?" from messy, contradictory events.</p>
+    </header>
+
+    <div class="status-bar">
+      <div id="api-status"><span class="dot amber"></span>Checking API…</div>
+      <div id="db-status"><span class="dot amber"></span>Checking DB…</div>
+      <div class="mono" style="margin-left: auto; color: #6b7280;">v1.0</div>
+    </div>
+
+    <div class="actions">
+      <button id="btn-happy" class="primary">Run Happy Path</button>
+      <button id="btn-conflict" class="danger">Trigger Conflict</button>
+      <button id="btn-refresh">Refresh</button>
+    </div>
+
+    <h2>Recent Transactions</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Amount</th>
+          <th>Currency</th>
+          <th>Direction</th>
+          <th>Reason</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody id="tx-body">
+        <tr><td colspan="6" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+
+    <div id="detail" class="detail" style="display:none;"></div>
+  </div>
+
+<script>
+const API = ''; // same origin
+let TENANT_ID = null;
+
+async function apifetch(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) }
+  });
+  const text = await res.text();
+  try { return { ok: res.ok, status: res.status, data: JSON.parse(text) }; }
+  catch { return { ok: res.ok, status: res.status, data: text }; }
+}
+
+async function checkHealth() {
+  const apiEl = document.getElementById('api-status');
+  const dbEl = document.getElementById('db-status');
+
+  const api = await apifetch('/health');
+  if (api.ok) {
+    apiEl.innerHTML = '<span class="dot green"></span>API online';
+  } else {
+    apiEl.innerHTML = '<span class="dot red"></span>API offline';
+  }
+
+  const db = await apifetch('/health/db');
+  if (db.ok) {
+    const t = new Date(db.data.db_time).toLocaleTimeString();
+    dbEl.innerHTML = `<span class="dot green"></span>DB connected <span class="mono" style="color:#6b7280">(${t})</span>`;
+  } else {
+    dbEl.innerHTML = '<span class="dot red"></span>DB unreachable';
+  }
+}
+
+async function loadTransactions() {
+  const tbody = document.getElementById('tx-body');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty"><span class="spinner"></span>Loading…</td></tr>';
+
+  const res = await apifetch('/demo/transactions');
+  if (!res.ok) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">Failed to load transactions</td></tr>';
+    return;
+  }
+
+  if (res.data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No transactions yet — click "Run Happy Path" to create one.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = res.data.map(tx => `
+    <tr class="clickable" data-id="${tx.id}">
+      <td><span class="badge ${tx.status}">${tx.status}</span></td>
+      <td class="mono">${(tx.amount_minor / 100).toLocaleString()}</td>
+      <td>${tx.currency}</td>
+      <td>${tx.direction}</td>
+      <td style="color:#8b949e; font-size:12px;">${tx.status_reason || '—'}</td>
+      <td style="color:#6b7280; font-size:12px;">${new Date(tx.updated_at).toLocaleTimeString()}</td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('tr.clickable').forEach(tr => {
+    tr.addEventListener('click', () => showDetail(tr.dataset.id));
+  });
+}
+
+async function showDetail(id) {
+  const el = document.getElementById('detail');
+  el.style.display = 'block';
+  el.innerHTML = '<div class="empty"><span class="spinner"></span>Loading detail…</div>';
+
+  const res = await apifetch('/demo/transactions/' + id);
+  if (!res.ok) {
+    el.innerHTML = '<div class="empty">Failed to load detail</div>';
+    return;
+  }
+
+  const { transaction, events, reconciliations, cases } = res.data;
+
+  el.innerHTML = `
+    <h3>Transaction ${transaction.id.slice(0, 8)}…</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+      <div><span style="color:#8b949e; font-size:12px;">Status</span><br><span class="badge ${transaction.status}">${transaction.status}</span></div>
+      <div><span style="color:#8b949e; font-size:12px;">Reason</span><br>${transaction.status_reason || '—'}</div>
+      <div><span style="color:#8b949e; font-size:12px;">Amount</span><br>${(transaction.amount_minor / 100).toLocaleString()} ${transaction.currency}</div>
+      <div><span style="color:#8b949e; font-size:12px;">Cases opened</span><br>${cases.length}</div>
+    </div>
+
+    <h3>Events (${events.length})</h3>
+    ${events.length === 0 ? '<div class="empty">No events yet</div>' :
+      events.map(e => `
+        <div class="event-row">
+          <div><span class="mono">${e.source}</span> · ${e.event_type}</div>
+          <div style="color:#6b7280;" class="mono">${new Date(e.occurred_at).toLocaleTimeString()}</div>
+        </div>
+      `).join('')}
+
+    <h3 style="margin-top:20px;">Reconciliation Decisions (${reconciliations.length})</h3>
+    ${reconciliations.length === 0 ? '<div class="empty">No decisions recorded yet</div>' :
+      reconciliations.map(r => `
+        <div class="event-row" style="flex-direction:column; align-items:flex-start; gap:4px;">
+          <div><span class="badge ${r.resolved_status}">${r.resolved_status}</span> <span style="color:#8b949e; font-size:12px;">(${r.confidence} confidence)</span></div>
+          <div style="color:#8b949e; font-size:12px;">${r.reason}</div>
+        </div>
+      `).join('')}
+  `;
+}
+
+async function runScenario(kind) {
+  const btns = [document.getElementById('btn-happy'), document.getElementById('btn-conflict')];
+  btns.forEach(b => b.disabled = true);
+
+  const res = await apifetch('/demo/scenario/' + kind, { method: 'POST' });
+  if (!res.ok) {
+    alert('Scenario failed: ' + JSON.stringify(res.data));
+  }
+
+  btns.forEach(b => b.disabled = false);
+  await loadTransactions();
+
+  // Flash the newest row
+  const firstRow = document.querySelector('#tx-body tr.clickable');
+  if (firstRow) firstRow.classList.add('flash');
+}
+
+document.getElementById('btn-happy').addEventListener('click', () => runScenario('happy'));
+document.getElementById('btn-conflict').addEventListener('click', () => runScenario('conflict'));
+document.getElementById('btn-refresh').addEventListener('click', () => loadTransactions());
+
+(async function init() {
+  await checkHealth();
+  await loadTransactions();
+  setInterval(checkHealth, 30000);
+})();
+</script>
+</body>
+</html>

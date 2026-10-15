@@ -1,8 +1,10 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
 import { query } from './db/client';
 import { eventsRouter } from './routes/events';
 import { transactionsRouter } from './routes/transactions';
+import { demoRouter } from './routes/demo';
 
 dotenv.config();
 
@@ -24,6 +26,7 @@ app.get('/health/db', async (_req, res) => {
 
 app.use(eventsRouter);
 app.use(transactionsRouter);
+app.use(demoRouter);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
