@@ -14,7 +14,7 @@ with a reason, a confidence level, and an audit trail. When sources
 contradict each other and cannot be safely resolved, it stops guessing,
 flags the transaction, and opens a support case automatically.
 
-**Live demo:** [tx-state-engine.onrender.com](https://tx-state-engine.onrender.com) *(coming soon)*
+**Live demo:** [tx-state-engine.onrender.com](https://tx-state-engine.onrender.com)
 
 ---
 
