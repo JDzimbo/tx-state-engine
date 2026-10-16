@@ -1,4 +1,5 @@
-![Tests](https://img.shields.io/badge/tests-11%20passing-brightgreen)
+
+![Tests](https://img.shields.io/badge/tests-13%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 
