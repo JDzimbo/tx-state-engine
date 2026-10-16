@@ -1,3 +1,7 @@
+![Tests](https://img.shields.io/badge/tests-11%20passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
+
 # Transaction State Engine
 
 A multi-tenant reconciliation engine that answers the one question every
